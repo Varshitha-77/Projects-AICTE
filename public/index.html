@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Library AI Agent — Powered by IBM Granite</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg         : #0f1117;
+      --surface    : #1a1d27;
+      --surface2   : #22263a;
+      --border     : #2e3348;
+      --text        : #e8eaf0;
+      --text-muted  : #7b82a0;
+      --accent      : #4f8ef7;
+      --accent2     : #7c5cd8;
+      --success     : #3ecf8e;
+      --warning     : #f5a623;
+      --danger      : #e84b4b;
+      --ibm-blue    : #0f62fe;
+      --radius      : 12px;
+      --radius-sm   : 8px;
+      --font        : -apple-system, "Segoe UI", system-ui, sans-serif;
+    }
+
+    body {
+      font-family   : var(--font);
+      background    : var(--bg);
+      color         : var(--text);
+      min-height    : 100vh;
+      display       : flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    header {
+      background   : var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding      : 0 24px;
+      height       : 64px;
+      display      : flex;
+      align-items  : center;
+      justify-content: space-between;
+      position     : sticky;
+      top          : 0;
+      z-index      : 100;
+    }
+
+    .logo {
+      display    : flex;
+      align-items: center;
+      gap        : 12px;
+    }
+
+    .logo-icon {
+      width           : 40px;
+      height          : 40px;
+      background      : linear-gradient(135deg, var(--ibm-blue), var(--accent2));
+      border-radius   : var(--radius-sm);
+      display         : flex;
+      align-items     : center;
+      justify-content : center;
+      font-size       : 20px;
+    }
+
+    .logo-text h1  { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .logo-text p   { font-size: 0.7rem; color: var(--text-muted); }
+
+    .header-badge {
+      background   : rgba(15, 98, 254, 0.15);
+      border       : 1px solid var(--ibm-blue);
+      color        : #6ea6ff;
+      font-size    : 0.72rem;
+      padding      : 4px 10px;
+      border-radius: 20px;
+      font-weight  : 500;
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────────────── */
+    .app-body {
+      display  : flex;
+      flex     : 1;
+      overflow : hidden;
+      height   : calc(100vh - 64px);
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────────────────────── */
+    .sidebar {
+      width        : 280px;
+      min-width    : 280px;
+      background   : var(--surface);
+      border-right : 1px solid var(--border);
+      display      : flex;
+      flex-direction: column;
+      overflow-y   : auto;
+      padding      : 16px;
+      gap          : 16px;
+    }
+
+    .sidebar-section h3 {
+      font-size    : 0.72rem;
+      font-weight  : 600;
+      color        : var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    /* Auth Card */
+    .auth-card {
+      background   : var(--surface2);
+      border       : 1px solid var(--border);
+      border-radius: var(--radius);
+      padding      : 14px;
+    }
+
+    .auth-card.authenticated {
+      border-color: var(--success);
+      background  : rgba(62, 207, 142, 0.05);
+    }
+
+    .auth-status {
+      display      : flex;
+      align-items  : center;
+      gap          : 8px;
+      margin-bottom: 12px;
+    }
+
+    .status-dot {
+      width        : 8px;
+      height       : 8px;
+      border-radius: 50%;
+      background   : var(--danger);
+    }
+
+    .status-dot.active { background: var(--success); }
+
+    .auth-name  { font-size: 0.85rem; font-weight: 600; }
+    .auth-dept  { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+    .input-row {
+      display      : flex;
+      flex-direction: column;
+      gap          : 8px;
+      margin-bottom: 10px;
+    }
+
+    input[type="text"], input[type="password"] {
+      background   : var(--bg);
+      border       : 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color        : var(--text);
+      padding      : 8px 12px;
+      font-size    : 0.82rem;
+      outline      : none;
+      width        : 100%;
+      transition   : border-color 0.2s;
+    }
+
+    input[type="text"]:focus, input[type="password"]:focus {
+      border-color: var(--accent);
+    }
+
+    /* Buttons */
+    .btn {
+      border       : none;
+      border-radius: var(--radius-sm);
+      cursor       : pointer;
+      font-size    : 0.82rem;
+      font-weight  : 600;
+      padding      : 8px 14px;
+      transition   : opacity 0.15s, transform 0.1s;
+      width        : 100%;
+    }
+
+    .btn:hover  { opacity: 0.88; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary {
+      background: var(--ibm-blue);
+      color     : #fff;
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color     : var(--text-muted);
+      border    : 1px solid var(--border);
+    }
+
+    .btn-danger {
+      background: rgba(232, 75, 75, 0.15);
+      color     : var(--danger);
+      border    : 1px solid var(--danger);
+    }
+
+    .btn-sm { padding: 6px 10px; font-size: 0.75rem; width: auto; }
+
+    /* Hint text */
+    .hint {
+      font-size  : 0.7rem;
+      color      : var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Quick prompts */
+    .quick-prompts {
+      display       : flex;
+      flex-direction: column;
+      gap           : 6px;
+    }
+
+    .quick-chip {
+      background   : var(--surface2);
+      border       : 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color        : var(--text);
+      cursor       : pointer;
+      font-size    : 0.78rem;
+      padding      : 8px 12px;
+      text-align   : left;
+      transition   : border-color 0.2s, background 0.2s;
+    }
+
+    .quick-chip:hover {
+      border-color: var(--accent);
+      background  : rgba(79, 142, 247, 0.08);
+    }
+
+    /* ── Chat area ───────────────────────────────────────────────────────── */
+    .chat-area {
+      flex          : 1;
+      display       : flex;
+      flex-direction: column;
+      overflow      : hidden;
+    }
+
+    .chat-messages {
+      flex      : 1;
+      overflow-y: auto;
+      padding   : 24px;
+      display   : flex;
+      flex-direction: column;
+      gap       : 20px;
+      scroll-behavior: smooth;
+    }
+
+    /* Welcome state */
+    .welcome {
+      display       : flex;
+      flex-direction: column;
+      align-items   : center;
+      justify-content: center;
+      flex          : 1;
+      text-align    : center;
+      gap           : 16px;
+      padding       : 40px;
+      color         : var(--text-muted);
+    }
+
+    .welcome-icon {
+      font-size  : 3rem;
+      filter     : grayscale(0.3);
+    }
+
+    .welcome h2 { font-size: 1.4rem; color: var(--text); }
+    .welcome p  { font-size: 0.9rem; max-width: 480px; line-height: 1.6; }
+
+    .feature-grid {
+      display              : grid;
+      grid-template-columns: 1fr 1fr;
+      gap                  : 10px;
+      width                : 100%;
+      max-width            : 500px;
+      margin-top           : 8px;
+    }
+
+    .feature-item {
+      background   : var(--surface);
+      border       : 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding      : 12px;
+      font-size    : 0.8rem;
+      text-align   : left;
+    }
+
+    .feature-item .fi-icon { font-size: 1.1rem; margin-bottom: 4px; }
+    .feature-item .fi-title { color: var(--text); font-weight: 600; margin-bottom: 2px; }
+
+    /* Messages */
+    .message {
+      display  : flex;
+      gap      : 12px;
+      max-width: 820px;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width           : 32px;
+      height          : 32px;
+      border-radius   : 50%;
+      display         : flex;
+      align-items     : center;
+      justify-content : center;
+      font-size       : 14px;
+      flex-shrink     : 0;
+    }
+
+    .message.assistant .message-avatar {
+      background: linear-gradient(135deg, var(--ibm-blue), var(--accent2));
+    }
+
+    .message.user .message-avatar {
+      background: var(--surface2);
+      border    : 1px solid var(--border);
+    }
+
+    .message-bubble {
+      background   : var(--surface);
+      border       : 1px solid var(--border);
+      border-radius: var(--radius);
+      padding      : 14px 18px;
+      line-height  : 1.65;
+      font-size    : 0.875rem;
+      max-width    : 680px;
+    }
+
+    .message.user .message-bubble {
+      background   : rgba(15, 98, 254, 0.12);
+      border-color : rgba(15, 98, 254, 0.3);
+    }
+
+    .message-bubble p      { margin-bottom: 8px; }
+    .message-bubble p:last-child { margin-bottom: 0; }
+    .message-bubble strong { color: var(--text); }
+
+    /* Book cards in messages */
+    .book-cards {
+      display       : flex;
+      flex-direction: column;
+      gap           : 8px;
+      margin-top    : 12px;
+    }
+
+    .book-card {
+      background   : var(--surface2);
+      border       : 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding      : 12px 14px;
+      display      : flex;
+      gap          : 12px;
+      align-items  : flex-start;
+    }
+
+    .book-card-info { flex: 1; }
+
+    .book-title  { font-weight: 600; font-size: 0.88rem; color: var(--text); margin-bottom: 2px; }
+    .book-author { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; }
+
+    .book-meta {
+      display    : flex;
+      gap        : 8px;
+      flex-wrap  : wrap;
+    }
+
+    .badge {
+      font-size    : 0.68rem;
+      padding      : 2px 8px;
+      border-radius: 20px;
+      font-weight  : 500;
+    }
+
+    .badge-available  { background: rgba(62, 207, 142, 0.15); color: var(--success); border: 1px solid var(--success); }
+    .badge-unavailable{ background: rgba(232, 75, 75, 0.15);  color: var(--danger);  border: 1px solid var(--danger); }
+    .badge-subject    { background: rgba(124, 92, 216, 0.15); color: #a78bfa;        border: 1px solid #7c5cd8; }
+    .badge-location   { background: rgba(79, 142, 247, 0.1);  color: var(--accent);  border: 1px solid rgba(79,142,247,0.3); }
+
+    .reserve-btn {
+      background: transparent;
+      border    : 1px solid var(--accent);
+      color     : var(--accent);
+      border-radius: var(--radius-sm);
+      padding   : 4px 10px;
+      font-size : 0.72rem;
+      cursor    : pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .reserve-btn:hover { background: rgba(79,142,247,0.12); }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display    : flex;
+      gap        : 4px;
+      align-items: center;
+      padding    : 12px 18px;
+    }
+
+    .typing-dot {
+      width        : 7px;
+      height       : 7px;
+      border-radius: 50%;
+      background   : var(--text-muted);
+      animation    : bounce 1.2s ease-in-out infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+      40%           { transform: scale(1.2); opacity: 1; }
+    }
+
+    /* Intent tag */
+    .intent-tag {
+      display    : inline-flex;
+      align-items: center;
+      gap        : 4px;
+      font-size  : 0.68rem;
+      color      : var(--text-muted);
+      background : var(--surface2);
+      border     : 1px solid var(--border);
+      padding    : 2px 8px;
+      border-radius: 20px;
+      margin-bottom: 6px;
+    }
+
+    /* System messages */
+    .system-msg {
+      text-align   : center;
+      font-size    : 0.75rem;
+      color        : var(--text-muted);
+      background   : var(--surface2);
+      border       : 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding      : 8px 14px;
+      align-self   : center;
+    }
+
+    .system-msg.success { border-color: var(--success); color: var(--success); }
+    .system-msg.error   { border-color: var(--danger);  color: var(--danger);  }
+    .system-msg.warning { border-color: var(--warning); color: var(--warning); }
+
+    /* ── Input area ──────────────────────────────────────────────────────── */
+    .input-area {
+      border-top : 1px solid var(--border);
+      padding    : 16px 24px;
+      background : var(--surface);
+    }
+
+    .input-wrapper {
+      display      : flex;
+      gap          : 10px;
+      background   : var(--surface2);
+      border       : 1px solid var(--border);
+      border-radius: var(--radius);
+      padding      : 6px 6px 6px 16px;
+      align-items  : flex-end;
+      transition   : border-color 0.2s;
+    }
+
+    .input-wrapper:focus-within { border-color: var(--accent); }
+
+    #chatInput {
+      flex       : 1;
+      background : transparent;
+      border     : none;
+      color      : var(--text);
+      font-size  : 0.9rem;
+      resize     : none;
+      outline    : none;
+      min-height : 24px;
+      max-height : 120px;
+      line-height: 1.5;
+      padding    : 4px 0;
+      font-family: var(--font);
+    }
+
+    #chatInput::placeholder { color: var(--text-muted); }
+
+    .send-btn {
+      background   : var(--ibm-blue);
+      border       : none;
+      border-radius: var(--radius-sm);
+      color        : #fff;
+      cursor       : pointer;
+      width        : 38px;
+      height       : 38px;
+      display      : flex;
+      align-items  : center;
+      justify-content: center;
+      transition   : opacity 0.15s;
+      flex-shrink  : 0;
+    }
+
+    .send-btn:hover   { opacity: 0.85; }
+    .send-btn:disabled{ opacity: 0.4; cursor: not-allowed; }
+
+    .input-hint {
+      font-size  : 0.7rem;
+      color      : var(--text-muted);
+      text-align : center;
+      margin-top : 6px;
+    }
+
+    /* ── Alerts ──────────────────────────────────────────────────────────── */
+    #alertBanner {
+      display      : none;
+      padding      : 10px 24px;
+      font-size    : 0.82rem;
+      font-weight  : 500;
+    }
+
+    #alertBanner.show { display: block; }
+    #alertBanner.info { background: rgba(79,142,247,0.1); color: #6ea6ff; border-bottom: 1px solid rgba(79,142,247,0.3); }
+    #alertBanner.err  { background: rgba(232,75,75,0.1);  color: #ff8080; border-bottom: 1px solid rgba(232,75,75,0.3); }
+
+    /* ── Scrollbar ───────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar       { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── Responsive ──────────────────────────────────────────────────────── */
+    @media (max-width: 720px) {
+      .sidebar       { display: none; }
+      .feature-grid  { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">📚</div>
+    <div class="logo-text">
+      <h1>Library AI Agent</h1>
+      <p>AICTE Problem Statement No.21</p>
+    </div>
+  </div>
+  <div class="header-badge">Powered by IBM Granite</div>
+</header>
+
+<!-- ── Alert Banner ───────────────────────────────────────────────────────── -->
+<div id="alertBanner"></div>
+
+<!-- ── Main body ──────────────────────────────────────────────────────────── -->
+<div class="app-body">
+
+  <!-- ── Sidebar ────────────────────────────────────────────────────────── -->
+  <aside class="sidebar">
+
+    <!-- Authentication -->
+    <div class="sidebar-section">
+      <h3>Student Login</h3>
+      <div class="auth-card" id="authCard">
+        <div class="auth-status">
+          <div class="status-dot" id="statusDot"></div>
+          <span id="authStatusText" style="font-size:0.8rem;color:var(--text-muted)">Not authenticated</span>
+        </div>
+        <div id="loginForm">
+          <div class="input-row">
+            <input type="text" id="rollInput" placeholder="Roll Number (e.g. CS2021001)" />
+            <input type="password" id="pinInput" placeholder="PIN" />
+          </div>
+          <button class="btn btn-primary" onclick="login()">Login</button>
+          <p class="hint" style="margin-top:8px">
+            Demo accounts: CS2021001 / 1234 &nbsp;|&nbsp; DS2022045 / 5678
+          </p>
+        </div>
+        <div id="profilePanel" style="display:none">
+          <div class="auth-name" id="profileName"></div>
+          <div class="auth-dept" id="profileDept"></div>
+          <div id="profileCourses" style="margin:8px 0; font-size:0.72rem; color:var(--text-muted)"></div>
+          <button class="btn btn-danger" style="margin-top:8px" onclick="logout()">Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Prompts -->
+    <div class="sidebar-section">
+      <h3>Quick Prompts</h3>
+      <div class="quick-prompts">
+        <button class="quick-chip" onclick="sendQuick('Find books on machine learning')">🤖 Machine Learning books</button>
+        <button class="quick-chip" onclick="sendQuick('What books are available for algorithms?')">⚡ Available algorithm books</button>
+        <button class="quick-chip" onclick="sendQuick('Recommend books for database systems')">💾 Database recommendations</button>
+        <button class="quick-chip" onclick="sendQuick('Check availability of Deep Learning book')">🔍 Check book availability</button>
+        <button class="quick-chip" onclick="sendQuick('Show my borrow history')">📋 My borrow history</button>
+        <button class="quick-chip" onclick="sendQuick('Books for Python programming beginners')">🐍 Python beginner books</button>
+      </div>
+    </div>
+
+    <!-- New Chat -->
+    <div class="sidebar-section" style="margin-top:auto">
+      <button class="btn btn-secondary" onclick="newConversation()">🔄 New Conversation</button>
+    </div>
+
+  </aside>
+
+  <!-- ── Chat Area ──────────────────────────────────────────────────────── -->
+  <main class="chat-area">
+
+    <div class="chat-messages" id="chatMessages">
+      <!-- Welcome screen -->
+      <div class="welcome" id="welcomeScreen">
+        <div class="welcome-icon">📖</div>
+        <h2>Welcome to Library AI Agent</h2>
+        <p>I'm your intelligent library assistant powered by <strong>IBM Granite</strong>. 
+           Ask me to find books, check availability, get personalized recommendations, or manage reservations.</p>
+        <div class="feature-grid">
+          <div class="feature-item">
+            <div class="fi-icon">🔍</div>
+            <div class="fi-title">Smart Search</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">Find books by title, author, or subject</div>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">✅</div>
+            <div class="fi-title">Live Availability</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">Real-time copy count from the library database</div>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">🎯</div>
+            <div class="fi-title">Personalized Picks</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">Recommendations aligned with your courses</div>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">🔖</div>
+            <div class="fi-title">Reservations</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">Reserve books or join the waitlist</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input area -->
+    <div class="input-area">
+      <div class="input-wrapper">
+        <textarea id="chatInput"
+          placeholder="Ask about books, availability, recommendations…"
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+      <p class="input-hint">Library queries only &nbsp;|&nbsp; Press Enter to send, Shift+Enter for new line</p>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // ── State ────────────────────────────────────────────────────────────────
+  let sessionId = null;
+  let convId    = null;
+  let isLoading = false;
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function showAlert(msg, type = 'info') {
+    const el = document.getElementById('alertBanner');
+    el.textContent = msg;
+    el.className   = 'show ' + type;
+    setTimeout(() => { el.className = ''; }, 4000);
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function scrollBottom() {
+    const msgs = document.getElementById('chatMessages');
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function hideWelcome() {
+    const w = document.getElementById('welcomeScreen');
+    if (w) w.style.display = 'none';
+  }
+
+  function newConversation() {
+    if (convId) {
+      fetch('/api/chat/' + convId, { method: 'DELETE' }).catch(() => {});
+    }
+    convId = null;
+    const msgs = document.getElementById('chatMessages');
+    msgs.innerHTML = '';
+    const welcome = document.createElement('div');
+    welcome.id = 'welcomeScreen';
+    welcome.className = 'welcome';
+    welcome.innerHTML = `
+      <div class="welcome-icon">📖</div>
+      <h2>New Conversation Started</h2>
+      <p>Ask me anything about the library — books, availability, reservations, and more.</p>`;
+    msgs.appendChild(welcome);
+  }
+
+  // ── Render helpers ────────────────────────────────────────────────────────
+  function formatMessage(text) {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>')
+      .replace(/^/, '<p>')
+      .replace(/$/, '</p>');
+  }
+
+  function renderBookCards(books) {
+    if (!books || books.length === 0) return '';
+    const cards = books.map(b => {
+      const avail   = b.available_copies > 0;
+      const badge   = avail
+        ? `<span class="badge badge-available">✓ ${b.available_copies} available</span>`
+        : `<span class="badge badge-unavailable">✗ Unavailable</span>`;
+      const subjects = (b.subjects || []).slice(0, 2).map(s =>
+        `<span class="badge badge-subject">${s}</span>`).join('');
+      const loc = b.location
+        ? `<span class="badge badge-location">📍 ${b.location}</span>` : '';
+      const reserveBtn = !avail
+        ? `<button class="reserve-btn" onclick="reserveBook('${b.id}','${b.title.replace(/'/g,"\\'")}')">Reserve</button>` : '';
+
+      return `
+      <div class="book-card">
+        <div class="book-card-info">
+          <div class="book-title">${b.title}</div>
+          <div class="book-author">${(b.authors || []).join(', ')} · ${b.year || ''}</div>
+          <div class="book-meta">${badge}${subjects}${loc}</div>
+        </div>
+        ${reserveBtn}
+      </div>`;
+    }).join('');
+    return `<div class="book-cards">${cards}</div>`;
+  }
+
+  function addMessage(role, text, extras = {}) {
+    hideWelcome();
+    const msgs    = document.getElementById('chatMessages');
+    const wrapper = document.createElement('div');
+    wrapper.className = `message ${role}`;
+
+    const avatar = role === 'assistant'
+      ? '<div class="message-avatar">📚</div>'
+      : '<div class="message-avatar">👤</div>';
+
+    let intentTag = '';
+    if (extras.intent && role === 'assistant') {
+      const labels = {
+        SEARCH_BOOKS      : '🔍 Search',
+        CHECK_AVAILABILITY: '✅ Availability',
+        GET_RECOMMENDATIONS: '🎯 Recommendations',
+        RESERVE_BOOK      : '🔖 Reservation',
+        BORROW_HISTORY    : '📋 History',
+        GENERAL_QUERY     : '💬 General',
+      };
+      const label = labels[extras.intent] || extras.intent;
+      intentTag = `<div class="intent-tag">${label}</div>`;
+    }
+
+    const bookHtml = extras.books ? renderBookCards(extras.books) : '';
+
+    wrapper.innerHTML = `
+      ${avatar}
+      <div class="message-bubble">
+        ${intentTag}
+        ${formatMessage(text)}
+        ${bookHtml}
+      </div>`;
+    msgs.appendChild(wrapper);
+    scrollBottom();
+  }
+
+  function addSystemMsg(text, type = '') {
+    hideWelcome();
+    const msgs = document.getElementById('chatMessages');
+    const el   = document.createElement('div');
+    el.className = `system-msg ${type}`;
+    el.textContent = text;
+    msgs.appendChild(el);
+    scrollBottom();
+  }
+
+  function showTyping() {
+    const msgs = document.getElementById('chatMessages');
+    const el   = document.createElement('div');
+    el.id        = 'typing';
+    el.className = 'message assistant';
+    el.innerHTML = `
+      <div class="message-avatar">📚</div>
+      <div class="message-bubble">
+        <div class="typing-indicator">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      </div>`;
+    msgs.appendChild(el);
+    scrollBottom();
+    return el;
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('typing');
+    if (el) el.remove();
+  }
+
+  // ── Send message ──────────────────────────────────────────────────────────
+  async function sendMessage() {
+    if (isLoading) return;
+    const input = document.getElementById('chatInput');
+    const query = input.value.trim();
+    if (!query) return;
+
+    isLoading = true;
+    document.getElementById('sendBtn').disabled = true;
+    input.value = '';
+    input.style.height = 'auto';
+
+    addMessage('user', query);
+    const typingEl = showTyping();
+
+    try {
+      const body = { query, convId };
+      if (sessionId) body.sessionId = sessionId;
+
+      const res  = await fetch('/api/chat', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify(body),
+      });
+
+      const data = await res.json();
+      convId     = data.convId || convId;
+      removeTyping();
+
+      if (data.type === 'BLOCKED' || data.type === 'PRIVACY_BLOCKED') {
+        addSystemMsg('⚠️ ' + data.message, 'warning');
+      } else if (data.type === 'AUTH_REQUIRED') {
+        addSystemMsg('🔒 ' + data.message, 'warning');
+        addSystemMsg('Please log in using the sidebar →', '');
+      } else if (data.type === 'OUT_OF_SCOPE') {
+        addMessage('assistant', data.message, {});
+      } else {
+        addMessage('assistant', data.message, {
+          intent: data.intent,
+          books : data.books,
+        });
+      }
+
+    } catch (err) {
+      removeTyping();
+      addSystemMsg('⚠️ Network error. Make sure the server is running on port 3000.', 'error');
+    }
+
+    isLoading = false;
+    document.getElementById('sendBtn').disabled = false;
+    input.focus();
+  }
+
+  function sendQuick(text) {
+    const input = document.getElementById('chatInput');
+    input.value = text;
+    sendMessage();
+  }
+
+  // ── Reserve book ──────────────────────────────────────────────────────────
+  async function reserveBook(bookId, title) {
+    if (!sessionId) {
+      addSystemMsg('🔒 Please log in to reserve books.', 'warning');
+      return;
+    }
+    try {
+      const res  = await fetch('/api/reservations', {
+        method : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': sessionId,
+        },
+        body: JSON.stringify({ bookId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        addSystemMsg('✅ ' + data.message, 'success');
+      } else {
+        addSystemMsg('❌ ' + (data.error || 'Reservation failed.'), 'error');
+      }
+    } catch (_) {
+      addSystemMsg('❌ Reservation request failed.', 'error');
+    }
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  async function login() {
+    const roll = document.getElementById('rollInput').value.trim();
+    const pin  = document.getElementById('pinInput').value.trim();
+    if (!roll || !pin) { showAlert('Please enter roll number and PIN.', 'err'); return; }
+
+    try {
+      const res  = await fetch('/api/auth/login', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ rollNumber: roll, pin }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showAlert(data.error || 'Login failed.', 'err'); return; }
+
+      sessionId = data.sessionId;
+      const s   = data.student;
+
+      document.getElementById('loginForm').style.display     = 'none';
+      document.getElementById('profilePanel').style.display  = 'block';
+      document.getElementById('profileName').textContent     = s.name;
+      document.getElementById('profileDept').textContent     = `${s.department} · Year ${s.year}`;
+      document.getElementById('profileCourses').textContent  = 'Courses: ' + s.courses.join(', ');
+      document.getElementById('statusDot').className         = 'status-dot active';
+      document.getElementById('authStatusText').textContent  = 'Authenticated';
+      document.getElementById('authCard').className          = 'auth-card authenticated';
+
+      addSystemMsg(`✅ ${data.message}`, 'success');
+    } catch (_) {
+      showAlert('Login request failed. Make sure the server is running.', 'err');
+    }
+  }
+
+  function logout() {
+    if (sessionId) {
+      fetch('/api/auth/logout', {
+        method : 'POST',
+        headers: { 'x-session-id': sessionId },
+      }).catch(() => {});
+    }
+    sessionId = null;
+    document.getElementById('loginForm').style.display    = 'block';
+    document.getElementById('profilePanel').style.display = 'none';
+    document.getElementById('rollInput').value            = '';
+    document.getElementById('pinInput').value             = '';
+    document.getElementById('statusDot').className        = 'status-dot';
+    document.getElementById('authStatusText').textContent = 'Not authenticated';
+    document.getElementById('authCard').className         = 'auth-card';
+    addSystemMsg('👋 Logged out successfully.', '');
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  document.getElementById('chatInput').focus();
+</script>
+
+</body>
+</html>

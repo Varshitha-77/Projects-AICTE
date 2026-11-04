@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Environment variables (contains IBM API key — never commit)
+.env
+
+# Logs
+logs/
+*.log
+
+# Runtime
+pids/
+*.pid
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.streamlit/secrets.toml
