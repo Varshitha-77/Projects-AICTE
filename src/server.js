@@ -37,7 +37,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin     : process.env.NODE_ENV === 'production' ? false : '*',
+  origin     : '*',
   credentials: true,
 }));
 
