@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Library AI Agent — Architecture Blueprint</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f0f4ff;
+    font-family: -apple-system, "Segoe UI", sans-serif;
+    padding: 24px;
+  }
+
+  .canvas {
+    width: 1400px;
+    min-height: 820px;
+    background: #ffffff;
+    border: 2px solid #cbd5e1;
+    border-radius: 12px;
+    position: relative;
+    padding: 20px;
+    margin: 0 auto;
+  }
+
+  /* ── Title ── */
+  .blueprint-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1e3a8a;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .blueprint-sub {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 18px;
+  }
+  .ibm-badge {
+    position: absolute;
+    top: 20px; right: 20px;
+    background: #0f62fe;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 20px;
+  }
+
+  /* ── Zone (dashed boundary) ── */
+  .zone {
+    position: absolute;
+    border-radius: 10px;
+    border-style: dashed;
+    border-width: 2px;
+  }
+  .zone-label {
+    position: absolute;
+    top: -13px; left: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 1px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  /* Zone colours */
+  .z-frontend { border-color: #3b82f6; background: rgba(219,234,254,0.25); }
+  .z-frontend .zone-label { background: #3b82f6; color: #fff; }
+  .z-backend  { border-color: #f97316; background: rgba(255,237,213,0.25); }
+  .z-backend  .zone-label { background: #f97316; color: #fff; }
+  .z-ibm      { border-color: #0f62fe; background: rgba(219,234,254,0.18); }
+  .z-ibm      .zone-label { background: #0f62fe; color: #fff; }
+  .z-data     { border-color: #16a34a; background: rgba(220,252,231,0.25); }
+  .z-data     .zone-label { background: #16a34a; color: #fff; }
+  .z-security { border-color: #dc2626; background: rgba(254,226,226,0.2); }
+  .z-security .zone-label { background: #dc2626; color: #fff; }
+
+  /* ── Box ── */
+  .box {
+    position: absolute;
+    border-radius: 8px;
+    border: 1.5px solid;
+    padding: 0;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .box-hdr {
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+    padding: 5px 6px;
+    letter-spacing: 0.05em;
+    color: #fff;
+    text-transform: uppercase;
+  }
+  .box-body {
+    padding: 6px 8px;
+    font-size: 10px;
+    line-height: 1.6;
+    color: #374151;
+  }
+  .box-body span { display: block; }
+  .box-icon {
+    font-size: 22px;
+    text-align: center;
+    padding: 6px 0 2px;
+    display: block;
+  }
+
+  /* Box colour themes */
+  .b-blue   { border-color: #3b82f6; } .b-blue   .box-hdr { background: #1d4ed8; }
+  .b-ibm    { border-color: #0f62fe; } .b-ibm    .box-hdr { background: #0f62fe; }
+  .b-red    { border-color: #dc2626; } .b-red    .box-hdr { background: #dc2626; }
+  .b-green  { border-color: #16a34a; } .b-green  .box-hdr { background: #16a34a; }
+  .b-purple { border-color: #7c3aed; } .b-purple .box-hdr { background: #7c3aed; }
+  .b-orange { border-color: #ea580c; } .b-orange .box-hdr { background: #ea580c; }
+  .b-gray   { border-color: #374151; } .b-gray   .box-hdr { background: #374151; }
+  .b-teal   { border-color: #0891b2; } .b-teal   .box-hdr { background: #0891b2; }
+
+  /* ── SVG arrows overlay ── */
+  .arrows-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .arr { stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
+  .arr-blue   { stroke: #3b82f6; }
+  .arr-red    { stroke: #dc2626; stroke-dasharray: 5,3; }
+  .arr-green  { stroke: #16a34a; }
+  .arr-orange { stroke: #f97316; }
+  .arr-ibm    { stroke: #0f62fe; }
+
+  .arr-label {
+    font-size: 9px;
+    fill: #64748b;
+    font-weight: 600;
+  }
+
+  /* ── Footer ── */
+  .footer-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: #1e3a8a;
+    color: #fff;
+    font-size: 10px;
+    padding: 7px 16px;
+    border-radius: 0 0 10px 10px;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+
+<div class="canvas" id="canvas">
+
+  <div class="blueprint-title">Library AI Agent — Architecture Blueprint</div>
+  <div class="blueprint-sub">AICTE Problem Statement No.21 &nbsp;|&nbsp; Node.js + Python Streamlit + IBM Granite (watsonx.ai)</div>
+  <div class="ibm-badge">IBM Granite · watsonx.ai · Cloud Lite</div>
+
+  <!-- ══════════════ ZONES ══════════════ -->
+
+  <!-- Frontend Zone -->
+  <div class="zone z-frontend" style="left:14px;top:68px;width:210px;height:480px;">
+    <div class="zone-label">Frontend Layer</div>
+  </div>
+
+  <!-- Security Zone -->
+  <div class="zone z-security" style="left:240px;top:68px;width:220px;height:220px;">
+    <div class="zone-label">Guardrails</div>
+  </div>
+
+  <!-- Backend Zone -->
+  <div class="zone z-backend" style="left:240px;top:310px;width:530px;height:238px;">
+    <div class="zone-label">Backend Layer</div>
+  </div>
+
+  <!-- IBM Cloud Zone -->
+  <div class="zone z-ibm" style="left:790px;top:68px;width:380px;height:480px;">
+    <div class="zone-label">IBM Cloud Lite</div>
+  </div>
+
+  <!-- Data Zone -->
+  <div class="zone z-data" style="left:14px;top:580px;width:1350px;height:195px;">
+    <div class="zone-label">Data &amp; Services Layer</div>
+  </div>
+
+  <!-- ══════════════ BOXES ══════════════ -->
+
+  <!-- Student -->
+  <div class="box b-blue" style="left:30px;top:90px;width:110px;">
+    <div class="box-icon">👤</div>
+    <div class="box-hdr">Student</div>
+    <div class="box-body">
+      <span>Streamlit UI</span>
+      <span>Port 8501</span>
+      <span>Browser</span>
+    </div>
+  </div>
+
+  <!-- Streamlit App -->
+  <div class="box b-blue" style="left:30px;top:240px;width:110px;">
+    <div class="box-icon">🎨</div>
+    <div class="box-hdr">Streamlit</div>
+    <div class="box-body">
+      <span>Chat UI</span>
+      <span>Book Cards</span>
+      <span>Login Panel</span>
+      <span>Quick Prompts</span>
+    </div>
+  </div>
+
+  <!-- REST Client -->
+  <div class="box b-teal" style="left:30px;top:410px;width:110px;">
+    <div class="box-icon">🔗</div>
+    <div class="box-hdr">REST Client</div>
+    <div class="box-body">
+      <span>HTTP Requests</span>
+      <span>x-session-id</span>
+      <span>JSON Payloads</span>
+    </div>
+  </div>
+
+  <!-- Input Guardrails -->
+  <div class="box b-red" style="left:256px;top:90px;width:185px;">
+    <div class="box-icon">🛡️</div>
+    <div class="box-hdr">Input Guardrails</div>
+    <div class="box-body">
+      <span>✕ Injection Block (12 patterns)</span>
+      <span>✕ Out-of-Scope Filter</span>
+      <span>✕ Privacy Risk Check</span>
+      <span>✕ Input Validation</span>
+      <span>✕ Length Limit (1000 chars)</span>
+    </div>
+  </div>
+
+  <!-- Output Guardrails -->
+  <div class="box b-red" style="left:256px;top:240px;width:185px;">
+    <div class="box-icon">🔒</div>
+    <div class="box-hdr">Output Guardrails</div>
+    <div class="box-body">
+      <span>✕ PII Sanitizer</span>
+      <span>✕ Email Redactor</span>
+      <span>✕ Phone Redactor</span>
+      <span>✕ Safe Tone Check</span>
+    </div>
+  </div>
+
+  <!-- Agent Core -->
+  <div class="box b-blue" style="left:256px;top:330px;width:185px;">
+    <div class="box-icon">🤖</div>
+    <div class="box-hdr">Agent Core</div>
+    <div class="box-body">
+      <span>Intent Classifier</span>
+      <span>Conversation History</span>
+      <span>DB Lookup Logic</span>
+      <span>Orchestrator</span>
+      <span>Fallback Handler</span>
+    </div>
+  </div>
+
+  <!-- Express API -->
+  <div class="box b-orange" style="left:470px;top:330px;width:175px;">
+    <div class="box-icon">⚙️</div>
+    <div class="box-hdr">Express REST API</div>
+    <div class="box-body">
+      <span>13 Endpoints</span>
+      <span>Helmet Security</span>
+      <span>CORS + Rate Limit</span>
+      <span>Morgan Logging</span>
+      <span>Port 3000</span>
+    </div>
+  </div>
+
+  <!-- Auth Module -->
+  <div class="box b-purple" style="left:470px;top:460px;width:175px;">
+    <div class="box-icon">🔐</div>
+    <div class="box-hdr">Auth Module</div>
+    <div class="box-body">
+      <span>bcryptjs PINs</span>
+      <span>UUID Sessions</span>
+      <span>Role: student/admin</span>
+      <span>TTL: 30 min</span>
+    </div>
+  </div>
+
+  <!-- watsonx.ai -->
+  <div class="box b-ibm" style="left:810px;top:90px;width:160px;">
+    <div class="box-icon">☁️</div>
+    <div class="box-hdr">watsonx.ai</div>
+    <div class="box-body">
+      <span>IBM Cloud Lite</span>
+      <span>Project ID</span>
+      <span>IAM Auth</span>
+      <span>REST API v2024</span>
+    </div>
+  </div>
+
+  <!-- IBM Granite -->
+  <div class="box b-ibm" style="left:1000px;top:90px;width:155px;">
+    <div class="box-icon">🧠</div>
+    <div class="box-hdr">IBM Granite</div>
+    <div class="box-body">
+      <span>granite-4-h-small</span>
+      <span>Temperature: 0.3</span>
+      <span>Max: 800 tokens</span>
+      <span>Top-P: 0.9</span>
+      <span>Stop Sequences</span>
+    </div>
+  </div>
+
+  <!-- Intent Classifier (IBM) -->
+  <div class="box b-ibm" style="left:810px;top:280px;width:160px;">
+    <div class="box-icon">🎯</div>
+    <div class="box-hdr">Intent Classifier</div>
+    <div class="box-body">
+      <span>SEARCH_BOOKS</span>
+      <span>CHECK_AVAILABILITY</span>
+      <span>RESERVE_BOOK</span>
+      <span>GET_RECOMMENDATIONS</span>
+      <span>BORROW_HISTORY</span>
+    </div>
+  </div>
+
+  <!-- Response Generator -->
+  <div class="box b-ibm" style="left:1000px;top:280px;width:155px;">
+    <div class="box-icon">💬</div>
+    <div class="box-hdr">Response Gen</div>
+    <div class="box-body">
+      <span>System Prompt</span>
+      <span>10 Guardrail Rules</span>
+      <span>DB Context Inject</span>
+      <span>Student Profile</span>
+      <span>Conv. History (6)</span>
+    </div>
+  </div>
+
+  <!-- ── Data Layer Boxes ── -->
+
+  <!-- Library DB -->
+  <div class="box b-green" style="left:30px;top:605px;width:140px;">
+    <div class="box-icon">📚</div>
+    <div class="box-hdr">Library DB</div>
+    <div class="box-body">
+      <span>15 Books (B001-B015)</span>
+      <span>3 Students</span>
+      <span>Borrow Records</span>
+      <span>Reservations</span>
+      <span>library_db.json</span>
+    </div>
+  </div>
+
+  <!-- Students DB -->
+  <div class="box b-purple" style="left:195px;top:605px;width:140px;">
+    <div class="box-icon">🎓</div>
+    <div class="box-hdr">Students</div>
+    <div class="box-body">
+      <span>Roll Number</span>
+      <span>Name / Dept / Year</span>
+      <span>Enrolled Courses</span>
+      <span>Active Borrows</span>
+      <span>Reservations</span>
+    </div>
+  </div>
+
+  <!-- Reservations -->
+  <div class="box b-orange" style="left:360px;top:605px;width:140px;">
+    <div class="box-icon">🔖</div>
+    <div class="box-hdr">Reservations</div>
+    <div class="box-body">
+      <span>Reserve ID</span>
+      <span>Student + Book</span>
+      <span>Reserved Date</span>
+      <span>Expiry: 30 days</span>
+      <span>Status: active</span>
+    </div>
+  </div>
+
+  <!-- Borrow Records -->
+  <div class="box b-teal" style="left:525px;top:605px;width:140px;">
+    <div class="box-icon">📋</div>
+    <div class="box-hdr">Borrow Records</div>
+    <div class="box-body">
+      <span>Borrow ID</span>
+      <span>Student + Book</span>
+      <span>Borrow Date</span>
+      <span>Due Date</span>
+      <span>Fine Amount</span>
+    </div>
+  </div>
+
+  <!-- Winston Logger -->
+  <div class="box b-gray" style="left:690px;top:605px;width:140px;">
+    <div class="box-icon">📝</div>
+    <div class="box-hdr">Winston Logger</div>
+    <div class="box-body">
+      <span>Structured JSON</span>
+      <span>Console + File</span>
+      <span>Rotating: 5MB</span>
+      <span>3 Log Files</span>
+      <span>agent.log</span>
+    </div>
+  </div>
+
+  <!-- Test Suite -->
+  <div class="box b-green" style="left:855px;top:605px;width:140px;">
+    <div class="box-icon">✅</div>
+    <div class="box-hdr">Test Suite</div>
+    <div class="box-body">
+      <span>32 Test Cases</span>
+      <span>Guardrail Tests</span>
+      <span>DB Tests</span>
+      <span>Auth Tests</span>
+      <span>Agent Pipeline</span>
+    </div>
+  </div>
+
+  <!-- dotenv -->
+  <div class="box b-gray" style="left:1020px;top:605px;width:140px;">
+    <div class="box-icon">🔑</div>
+    <div class="box-hdr">Config / Secrets</div>
+    <div class="box-body">
+      <span>IBM_API_KEY</span>
+      <span>WATSONX_URL</span>
+      <span>PROJECT_ID</span>
+      <span>SESSION_SECRET</span>
+      <span>.env (gitignored)</span>
+    </div>
+  </div>
+
+  <!-- GitHub -->
+  <div class="box b-gray" style="left:1185px;top:605px;width:155px;">
+    <div class="box-icon">🐙</div>
+    <div class="box-hdr">GitHub</div>
+    <div class="box-body">
+      <span>Varshitha-77/</span>
+      <span>Projects-AICTE</span>
+      <span>17 Files</span>
+      <span>6243 Lines</span>
+      <span>.gitignore secured</span>
+    </div>
+  </div>
+
+  <!-- ══════════════ SVG ARROWS ══════════════ -->
+  <svg class="arrows-svg" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/>
+      </marker>
+      <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#3b82f6"/>
+      </marker>
+      <marker id="arrow-ibm" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#0f62fe"/>
+      </marker>
+      <marker id="arrow-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#dc2626"/>
+      </marker>
+      <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#16a34a"/>
+      </marker>
+      <marker id="arrow-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#f97316"/>
+      </marker>
+    </defs>
+
+    <!-- Student → Streamlit -->
+    <line x1="85" y1="185" x2="85" y2="238" stroke="#3b82f6" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+    <text x="90" y="215" class="arr-label">renders</text>
+
+    <!-- Streamlit → REST Client -->
+    <line x1="85" y1="360" x2="85" y2="408" stroke="#3b82f6" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+    <text x="90" y="390" class="arr-label">HTTP</text>
+
+    <!-- REST Client → Input Guardrails -->
+    <line x1="142" y1="440" x2="254" y2="175" stroke="#f97316" stroke-width="1.8" marker-end="url(#arrow-orange)"/>
+    <text x="175" y="340" class="arr-label">query</text>
+
+    <!-- Input Guardrails → Agent Core -->
+    <line x1="348" y1="220" x2="348" y2="328" stroke="#16a34a" stroke-width="1.8" marker-end="url(#arrow-green)"/>
+    <text x="353" y="278" class="arr-label">safe input</text>
+
+    <!-- Agent Core → Express API -->
+    <line x1="443" y1="400" x2="468" y2="400" stroke="#f97316" stroke-width="1.8" marker-end="url(#arrow-orange)"/>
+    <text x="448" y="393" class="arr-label">API call</text>
+
+    <!-- Express API → Auth Module -->
+    <line x1="557" y1="458" x2="557" y2="458" stroke="#7c3aed" stroke-width="1.8" marker-end="url(#arrow)"/>
+    <line x1="557" y1="458" x2="557" y2="458" stroke="#7c3aed" stroke-width="1.8"/>
+
+    <!-- Agent Core → watsonx.ai -->
+    <path d="M443,390 Q630,300 808,170" stroke="#0f62fe" stroke-width="1.8" fill="none" marker-end="url(#arrow-ibm)" stroke-dasharray="6,3"/>
+    <text x="600" y="300" class="arr-label" fill="#0f62fe">Prompt to IBM Granite</text>
+
+    <!-- watsonx.ai → IBM Granite -->
+    <line x1="972" y1="160" x2="998" y2="160" stroke="#0f62fe" stroke-width="1.8" marker-end="url(#arrow-ibm)"/>
+    <text x="974" y="152" class="arr-label" fill="#0f62fe">model call</text>
+
+    <!-- IBM Granite → Intent Classifier -->
+    <line x1="1077" y1="235" x2="1077" y2="278" stroke="#0f62fe" stroke-width="1.8" marker-end="url(#arrow-ibm)"/>
+
+    <!-- watsonx.ai → Response Generator -->
+    <line x1="890" y1="235" x2="890" y2="278" stroke="#0f62fe" stroke-width="1.8" marker-end="url(#arrow-ibm)"/>
+
+    <!-- Response Generator → Output Guardrails -->
+    <path d="M1000,350 Q700,290 443,290" stroke="#dc2626" stroke-width="1.8" fill="none" marker-end="url(#arrow-red)" stroke-dasharray="5,3"/>
+    <text x="680" y="283" class="arr-label" fill="#dc2626">response</text>
+
+    <!-- Output Guardrails → Streamlit -->
+    <line x1="256" y1="310" x2="143" y2="310" stroke="#16a34a" stroke-width="1.8" marker-end="url(#arrow-green)"/>
+    <text x="170" y="303" class="arr-label">safe reply</text>
+
+    <!-- Agent Core → Library DB -->
+    <path d="M348,500 Q200,550 170,603" stroke="#16a34a" stroke-width="1.5" fill="none" marker-end="url(#arrow-green)" stroke-dasharray="4,3"/>
+    <text x="210" y="565" class="arr-label">DB query</text>
+
+    <!-- Express API → Logger -->
+    <path d="M557,500 Q625,555 760,603" stroke="#374151" stroke-width="1.5" fill="none" marker-end="url(#arrow)" stroke-dasharray="4,3"/>
+    <text x="640" y="555" class="arr-label">logs</text>
+
+    <!-- Express API → Auth -->
+    <line x1="557" y1="458" x2="557" y2="458" stroke="#7c3aed" stroke-width="1.8"/>
+    <line x1="557" y1="456" x2="557" y2="460" stroke="#7c3aed" stroke-width="1.8" marker-end="url(#arrow)"/>
+  </svg>
+
+  <!-- ══════════════ FOOTER ══════════════ -->
+  <div class="footer-bar">
+    32 Tests Passing &nbsp;|&nbsp; 15 Books &nbsp;|&nbsp; 10 Guardrails &nbsp;|&nbsp;
+    3 Students &nbsp;|&nbsp; 13 API Endpoints &nbsp;|&nbsp;
+    Tagline: <em>"Your Smart Librarian, Always Available."</em>
+  </div>
+
+</div>
+
+<p style="text-align:center;margin-top:14px;font-size:12px;color:#64748b">
+  Open in Chrome → Press <strong>F12</strong> → Console → type:
+  <code>document.querySelector('.canvas').style.transform='scale(1)'</code>
+  &nbsp;→ Then press <strong>Ctrl+Shift+P</strong> → <em>Capture full size screenshot</em> → PNG saved ✅
+</p>
+
+</body>
+</html>
